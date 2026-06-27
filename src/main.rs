@@ -573,9 +573,15 @@ fn draw_ui(state_mutex: &Arc<Mutex<AppState>>) {
         View::About => {
             right_lines.push(format!("{}{}About Orchestrator:{}", C_CYAN, C_BOLD, C_RESET));
             right_lines.push("".to_string());
-            right_lines.push("  Google Docs Agent Orchestrator TUI v2.2 (Rust Edition)".to_string());
-            right_lines.push("  Automates and orchestrates Gemini-powered agents".to_string());
-            right_lines.push("  reading and updating specific document tabs.".to_string());
+            right_lines.push("  Google Docs Agent Orchestrator TUI (Rust Edition)".to_string());
+            right_lines.push("".to_string());
+            right_lines.push(format!("  {}★ PRIMARY SYSTEM INPUT:{}", C_CYAN, C_RESET));
+            right_lines.push("  Each individual Google Doc Tab serves as a direct".to_string());
+            right_lines.push("  input/job channel to this orchestration system.".to_string());
+            right_lines.push("  Trigger/Input state transitions on Tab Titles:".to_string());
+            right_lines.push("   • [agent]         -> System Input / Job Trigger".to_string());
+            right_lines.push("   • [agent,working] -> Running Background Process".to_string());
+            right_lines.push("   • [human]         -> Task Completed".to_string());
             right_lines.push("".to_string());
             right_lines.push(format!("  {}Active Command Template:{}", C_BOLD, C_RESET));
             right_lines.push(format!("  {}agy --dangerously-skip-permissions --print \\{}", C_YELLOW, C_RESET));

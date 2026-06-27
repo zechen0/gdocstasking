@@ -11,12 +11,30 @@ A high-performance, concurrent terminal user interface (TUI) built in Rust to or
 
 ---
 
+## System Input Source: Google Doc Tabs
+
+This system is entirely input-driven, where **individual Google Doc Tabs serve as the primary system inputs**. 
+
+1. **The Google Doc Tab as Input**: Each tab within the target Google Doc functions as an independent job channel and input container. The content inside that tab is what the background Gemini-powered agent reads and processes.
+2. **Tab Title Triggers (State Transition)**: The orchestrator polls the Google Doc API to watch for specific status tags in the tab titles. The state of the input is managed directly through these title updates:
+   * **`[agent]` (System Input / Ready to Run)**: Appending `[agent]` to a tab's title acts as the system input, notifying the orchestrator that a new job is ready.
+   * **`[agent,working]` (Active Run State)**: On detecting the input trigger, the TUI renames the tab to include `[agent,working]` on the Google Docs API and spawns a background `agy` process to execute the job.
+   * **`[human]` (Completed / Returned to User)**: After successfully reading, running, and updating the tab's contents, the agent renames the tab title to `[human]`, indicating the job is complete and ready for human review.
+
+---
+
 ## Architecture Diagram
 
-The diagram below details the simplified architecture, state synchronization, and execution boundaries:
+The diagram below details the simplified architecture, state synchronization, and execution boundaries, highlighting the **Google Doc Tabs** as the primary system input:
 
 ```mermaid
 graph TD
+    subgraph InputSource ["Primary Input Source (Google Doc)"]
+        DocTabs["Google Doc Tabs<br>(Each tab is an input/job channel)"]
+        TabStatus["Tab Title Status Tag:<br>• [agent] (Input Trigger)<br>• [agent,working] (Running)<br>• [human] (Finished)"]
+        DocTabs --> TabStatus
+    end
+
     subgraph Host ["Host System"]
         subgraph TUI ["Rust TUI Process"]
             UI["Render & Input Engine"]
@@ -30,19 +48,23 @@ graph TD
     
     subgraph GCP ["Google Cloud Platform"]
         DocsAPI["Google Docs API"]
-        GCPServices["GCP Services<br>(Vertex AI, Cloud Storage, BigQuery, etc.)"]
+        GCPServices["GCP Services<br>(Vertex AI, Cloud Storage, etc.)"]
     end
     
     subgraph External ["Any Configured API Services"]
-        APIs["Third-Party & Private APIs<br>(Admin-configured SaaS, custom endpoints, Slack, etc.)"]
+        APIs["Third-Party & Private APIs<br>(SaaS, Custom endpoints, etc.)"]
     end
     
-    %% Inputs
+    %% Inputs & Triggers
     User["Keyboard & Mouse"] -->|Input Events| UI
+    DocTabs <-->|Read/Write State| DocsAPI
+    DocsAPI -->|Trigger Input: Tab status set to [agent]| Poll
+    
+    %% UI State Communication
     UI <-->|Read/Write| State
     
     %% Polling & API Communication
-    Poll -->|Fetch Tabs & Update Title| DocsAPI
+    Poll -->|Poll Document Tabs & Status| DocsAPI
     Poll <-->|Read/Write Status| State
     
     %% Spawning agy
