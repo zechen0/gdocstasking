@@ -4,7 +4,7 @@ A high-performance, concurrent terminal user interface (TUI) built in Rust to or
 
 ## Key Features
 * **Multithreaded Concurrent Execution**: Avoids UI blocking by isolating user input, Google Docs API polling, process spawning, and stdout/stderr stream capturing into distinct threads.
-* **Pure Standard Library**: Built with exactly **zero external dependencies** (`Cargo.toml` remains dependency-free) for lightning-fast compilation, portability, and 100% offline-ready operations on macOS.
+* **Pure Standard Library**: Built with exactly **zero external dependencies** (`Cargo.toml` remains dependency-free) for lightning-fast compilation, portability, and 100% offline-ready operations on any standard host platform.
 * **Rich Layout**: Native split-column view (32-column left navigation, 52-column right information/logs card).
 * **Interactive SGR Mouse Support**: Fully interactive keyboard navigation fallback with real-time mouse-click detection. Clicking navigation items or table rows immediately updates view contexts.
 * **Hierarchical Tab Extraction**: Auto-traverses and retrieves deep nested Google Doc sub-tabs recursively using a highly optimized JSON property extraction scanner.
@@ -13,56 +13,41 @@ A high-performance, concurrent terminal user interface (TUI) built in Rust to or
 
 ## Architecture Diagram
 
-The diagram below details the thread coordination, CLI command boundaries, and state flows of the TUI:
+The diagram below details the simplified architecture, state synchronization, and execution boundaries:
 
 ```mermaid
 graph TD
-    subgraph Host ["macOS Host System"]
-        subgraph TUI ["Rust TUI Process (doc_agent_tui)"]
-            MainThread["Main Render Thread"]
-            InputThread["Stdin Input Thread"]
-            PollThread["Background Poll Loop Thread"]
-            AgyThread["Background agy Task Thread"]
-            StdoutThread["Agy Stdout Reader Thread"]
-            StderrThread["Agy Stderr Reader Thread"]
-            
-            State[("Shared AppState<br>(Arc &lt; Mutex &gt;)")]
+    subgraph Host ["Host System"]
+        subgraph TUI ["Rust TUI Process"]
+            UI["Render & Input Engine"]
+            Poll["Poll & Execution Coordinator"]
+            State[("Shared AppState")]
         end
         
-        gcloud["gcloud Auth CLI"]
-        curl["curl CLI Process"]
-        agy["agy Agent CLI Process"]
+        agy["agy Agent CLI"]
+        tools["Local CLI Tools<br>(ffmpeg, gcc, git, etc.)"]
     end
     
-    subgraph External ["Google Cloud Platform"]
+    subgraph GCP ["Google Cloud Platform"]
         DocsAPI["Google Docs API"]
+        GCPServices["GCP Services<br>(Vertex AI, Cloud Storage, BigQuery, etc.)"]
     end
     
-    %% Stdin flow
-    Keyboard["Keyboard / Mouse Click"] -->|Raw bytes| InputThread
-    InputThread -->|mpsc Channel| MainThread
+    %% Inputs
+    User["Keyboard & Mouse"] -->|Input Events| UI
+    UI <-->|Read/Write| State
     
-    %% Render flow
-    MainThread -->|Read State| State
-    MainThread -->|Draw UI| TerminalScreen["Terminal Screen (ANSI/SGR)"]
+    %% Polling & API Communication
+    Poll -->|Fetch Tabs & Update Title| DocsAPI
+    Poll <-->|Read/Write Status| State
     
-    %% Poll loop flow
-    PollThread -->|gcloud auth print-access-token| gcloud
-    gcloud -.->|Token string| PollThread
-    PollThread -->|curl -H 'Authorization'| curl
-    curl <-->|HTTP JSON| DocsAPI
-    PollThread -->|Extract and Write Status| State
+    %% Spawning agy
+    Poll -->|Spawn Agent Run| agy
+    agy -->|Real-time stdout/stderr| State
     
-    %% Task invocation flow
-    PollThread -->|Spawn Agent Run| AgyThread
-    AgyThread -->|Spawn Process| agy
-    AgyThread -->|gcloud batchUpdate rename status| curl
-    
-    %% Output streaming flow
-    agy -->|Stdout Pipe| StdoutThread
-    agy -->|Stderr Pipe| StderrThread
-    StdoutThread -->|Thread-safe Log Stream| State
-    StderrThread -->|Thread-safe Log Stream| State
+    %% agy interaction with host tools and other GCP services
+    agy <-->|Execute Commands| tools
+    agy <-->|API Calls| GCPServices
 ```
 
 ---
