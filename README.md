@@ -58,7 +58,7 @@ graph TD
     %% Inputs & Triggers
     User["Keyboard & Mouse"] -->|Input Events| UI
     DocTabs <-->|Read/Write State| DocsAPI
-    DocsAPI -->|Trigger Input: Tab status set to [agent]| Poll
+    DocsAPI -->|Trigger Input: Tab status set to 'agent'| Poll
     
     %% UI State Communication
     UI <-->|Read/Write| State
