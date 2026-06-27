@@ -36,7 +36,7 @@ graph TD
     end
 
     subgraph Host ["Host System"]
-        subgraph TUI ["Rust TUI Process"]
+        subgraph TUI ["Management Process"]
             UI["Render & Input Engine"]
             Poll["Poll & Execution Coordinator"]
             State[("Shared AppState")]
