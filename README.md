@@ -33,6 +33,10 @@ graph TD
         GCPServices["GCP Services<br>(Vertex AI, Cloud Storage, BigQuery, etc.)"]
     end
     
+    subgraph External ["Any Configured API Services"]
+        APIs["Third-Party & Private APIs<br>(Admin-configured SaaS, custom endpoints, Slack, etc.)"]
+    end
+    
     %% Inputs
     User["Keyboard & Mouse"] -->|Input Events| UI
     UI <-->|Read/Write| State
@@ -45,9 +49,10 @@ graph TD
     Poll -->|Spawn Agent Run| agy
     agy -->|Real-time stdout/stderr| State
     
-    %% agy interaction with host tools and other GCP services
+    %% agy interactions
     agy <-->|Execute Commands| tools
-    agy <-->|API Calls| GCPServices
+    agy <-->|GCP API Calls| GCPServices
+    agy <-->|Custom / SaaS API Calls| APIs
 ```
 
 ---
